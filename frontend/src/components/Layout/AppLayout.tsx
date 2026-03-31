@@ -76,7 +76,7 @@ export default function AppLayout() {
   }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: '#F5F0E8' }}>
       {/* Desktop sidebar */}
       {!isMobile && (
         <Sider
@@ -112,7 +112,7 @@ export default function AppLayout() {
         </Drawer>
       )}
 
-      <Layout style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 200), transition: 'margin-left 0.2s' }}>
+      <Layout style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 200), transition: 'margin-left 0.2s', background: '#F5F0E8' }}>
         <Header style={{
           padding: '0 12px', background: '#FDFAF5', display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', borderBottom: '1px solid #E8DDD0',
@@ -141,7 +141,7 @@ export default function AppLayout() {
           </div>
         </Header>
 
-        <Content style={{ margin: isMobile ? '12px 8px' : '16px', minHeight: 'calc(100vh - 96px)', background: 'transparent' }}>
+        <Content style={{ margin: isMobile ? '8px' : '16px', background: '#F5F0E8' }}>
           <Outlet />
         </Content>
       </Layout>
