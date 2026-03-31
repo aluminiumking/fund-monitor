@@ -1,0 +1,171 @@
+import React, { useEffect, useState } from 'react'
+import { Row, Col, Card, Statistic, Alert, Tag, Spin, Table, Tabs } from 'antd'
+import { ArrowUpOutlined, ArrowDownOutlined, WarningOutlined, InfoCircleOutlined } from '@ant-design/icons'
+import { Line, Pie } from '@ant-design/charts'
+import { getDashboardKPI, getCompanyBreakdown, getWeeklyTrend, getMonthlyTrend, getAlerts } from '../../api'
+import { fmtMYR, fmtPct, changeColor } from '../../utils/format'
+
+export default function DashboardPage() {
+  const [kpi, setKpi] = useState<any>(null)
+  const [breakdown, setBreakdown] = useState<any[]>([])
+  const [weeklyTrend, setWeeklyTrend] = useState<any[]>([])
+  const [monthlyTrend, setMonthlyTrend] = useState<any[]>([])
+  const [alerts, setAlerts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      getDashboardKPI(), getCompanyBreakdown(), getWeeklyTrend(12), getMonthlyTrend(12), getAlerts()
+    ]).then(([k, b, wt, mt, a]) => {
+      setKpi(k); setBreakdown(b); setWeeklyTrend(wt); setMonthlyTrend(mt); setAlerts(a)
+    }).finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div>
+
+  const statCard = (title: string, value: number, change: number | null, pct: number | null, prefix = 'MYR') => (
+    <Card>
+      <Statistic
+        title={title}
+        value={value}
+        prefix={prefix}
+        precision={2}
+        formatter={(v) => Number(v).toLocaleString('en-MY', { minimumFractionDigits: 2 })}
+      />
+      {change != null && (
+        <div style={{ marginTop: 8, fontSize: 12, color: changeColor(change) }}>
+          {change >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+          {' '}{fmtMYR(Math.abs(change))} ({fmtPct(pct)})
+        </div>
+      )}
+    </Card>
+  )
+
+  const trendData = weeklyTrend.map((d: any) => ({ ...d, series: '周余额' }))
+  const monthlyData = monthlyTrend.map((d: any) => ({ ...d, series: '月余额' }))
+
+  const pieData = breakdown.map((c: any) => ({ type: c.company_short, value: c.total_myr }))
+
+  const companyColumns = [
+    { title: '公司', dataIndex: 'company_name', key: 'company_name' },
+    { title: '总余额 (MYR)', dataIndex: 'total_myr', key: 'total_myr', render: (v: number) => fmtMYR(v), align: 'right' as const },
+    { title: '可动用', dataIndex: 'liquid_myr', key: 'liquid_myr', render: (v: number) => fmtMYR(v), align: 'right' as const },
+    { title: '定期', dataIndex: 'fixed_myr', key: 'fixed_myr', render: (v: number) => fmtMYR(v), align: 'right' as const },
+  ]
+
+  return (
+    <div>
+      <h2 style={{ marginBottom: 24 }}>资金总览 Dashboard</h2>
+
+      {/* Alerts */}
+      {alerts.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          {alerts.slice(0, 3).map((a: any, i: number) => (
+            <Alert key={i} message={a.message} type={a.severity === 'warning' ? 'warning' : 'info'}
+              icon={a.severity === 'warning' ? <WarningOutlined /> : <InfoCircleOutlined />}
+              showIcon style={{ marginBottom: 8 }} />
+          ))}
+        </div>
+      )}
+
+      {/* KPI Cards */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} lg={6}>{statCard('集团总资金', kpi.total_myr, null, null)}</Col>
+        <Col xs={24} sm={12} lg={6}>{statCard('可动用资金', kpi.liquid_myr, null, null)}</Col>
+        <Col xs={24} sm={12} lg={6}>{statCard('定期资金', kpi.fixed_myr, null, null)}</Col>
+        <Col xs={24} sm={12} lg={6}>{statCard('USD 余额', kpi.usd_original, null, null, 'USD')}</Col>
+        <Col xs={24} sm={12} lg={8}>{statCard('本周变化', Math.abs(kpi.week_change), kpi.week_change, kpi.week_change_pct)}</Col>
+        <Col xs={24} sm={12} lg={8}>{statCard('本月变化', Math.abs(kpi.month_change), kpi.month_change, kpi.month_change_pct)}</Col>
+        <Col xs={24} sm={12} lg={8}>{statCard('本年变化', Math.abs(kpi.year_change), kpi.year_change, kpi.year_change_pct)}</Col>
+      </Row>
+
+      {/* Charts */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={16}>
+          <Card title="资金趋势">
+            <Tabs items={[
+              {
+                key: 'weekly', label: '近12周',
+                children: <Line
+                  data={trendData}
+                  xField="label"
+                  yField="total_myr"
+                  smooth
+                  height={260}
+                  axis={{
+                    x: {
+                      label: true,
+                      labelSpacing: 4,
+                      style: { labelTransform: 'rotate(-35)', fontSize: 11 },
+                    },
+                    y: {
+                      label: true,
+                      labelFormatter: (v: string) => `${(+v / 1000).toFixed(0)}K`,
+                    },
+                  }}
+                  tooltip={{ channel: 'y', valueFormatter: (v: number) => fmtMYR(v) }}
+                  point={{ size: 4, style: { fill: '#8B5E3C' } }}
+                  style={{ stroke: '#8B5E3C' }}
+                />
+              },
+              {
+                key: 'monthly', label: '近12月',
+                children: <Line
+                  data={monthlyData}
+                  xField="label"
+                  yField="total_myr"
+                  smooth
+                  height={260}
+                  axis={{
+                    x: {
+                      label: true,
+                      labelSpacing: 4,
+                      style: { labelTransform: 'rotate(-35)', fontSize: 11 },
+                    },
+                    y: {
+                      label: true,
+                      labelFormatter: (v: string) => `${(+v / 1000).toFixed(0)}K`,
+                    },
+                  }}
+                  tooltip={{ channel: 'y', valueFormatter: (v: number) => fmtMYR(v) }}
+                  point={{ size: 4, style: { fill: '#8B5E3C' } }}
+                  style={{ stroke: '#8B5E3C' }}
+                />
+              },
+            ]} />
+          </Card>
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card title="公司资金占比" style={{ height: '100%' }}>
+            <Pie data={pieData} angleField="value" colorField="type" radius={0.8} height={280}
+              label={{ text: 'type', style: { fontSize: 12 } }} />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Company breakdown table */}
+      <Card title="各公司资金明细">
+        <Table
+          dataSource={breakdown}
+          columns={companyColumns}
+          rowKey="company_id"
+          pagination={false}
+          size="small"
+          summary={(rows) => {
+            const total = rows.reduce((s, r) => s + r.total_myr, 0)
+            const liquid = rows.reduce((s, r) => s + r.liquid_myr, 0)
+            const fixed = rows.reduce((s, r) => s + r.fixed_myr, 0)
+            return (
+              <Table.Summary.Row style={{ fontWeight: 700 }}>
+                <Table.Summary.Cell index={0}>合计</Table.Summary.Cell>
+                <Table.Summary.Cell index={1} align="right">{fmtMYR(total)}</Table.Summary.Cell>
+                <Table.Summary.Cell index={2} align="right">{fmtMYR(liquid)}</Table.Summary.Cell>
+                <Table.Summary.Cell index={3} align="right">{fmtMYR(fixed)}</Table.Summary.Cell>
+              </Table.Summary.Row>
+            )
+          }}
+        />
+      </Card>
+    </div>
+  )
+}
