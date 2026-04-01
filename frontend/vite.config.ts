@@ -21,10 +21,11 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ['**/*.{js,css,ico,png,svg}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         skipWaiting: true,
         clientsClaim: true,
+        navigateFallback: null,
       },
     }),
   ],
