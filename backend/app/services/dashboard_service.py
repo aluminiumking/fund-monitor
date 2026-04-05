@@ -172,6 +172,29 @@ def _sum_at(db: Session, target_date: date) -> Decimal:
     return val or Decimal("0")
 
 
+def get_account_breakdown(db: Session) -> list[dict]:
+    """Latest balance for every active account that has a snapshot."""
+    snapshots = get_latest_snapshot_per_account(db)
+    result = []
+    for s in snapshots:
+        acc = s.bank_account
+        result.append({
+            "account_id": acc.id,
+            "company_name": s.company.name if s.company else "",
+            "company_short": s.company.short_name if s.company else "",
+            "account_name": acc.display_name or acc.account_name,
+            "bank_name": acc.bank_name,
+            "account_type": acc.account_type,
+            "currency": s.currency,
+            "balance_original": float(s.balance_original or 0),
+            "balance_myr": float(s.balance_myr or 0),
+            "is_liquid": acc.is_liquid,
+            "snapshot_date": s.snapshot_date.isoformat(),
+        })
+    result.sort(key=lambda x: (x["company_name"], x["account_name"]))
+    return result
+
+
 def get_alerts(db: Session) -> list[dict]:
     alerts = []
     today = date.today()

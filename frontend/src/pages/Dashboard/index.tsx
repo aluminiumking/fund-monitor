@@ -2,22 +2,30 @@ import React, { useEffect, useState } from 'react'
 import { Row, Col, Card, Statistic, Alert, Tag, Spin, Table, Tabs } from 'antd'
 import { ArrowUpOutlined, ArrowDownOutlined, WarningOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import { Line, Pie } from '@ant-design/charts'
-import { getDashboardKPI, getCompanyBreakdown, getWeeklyTrend, getMonthlyTrend, getAlerts } from '../../api'
+import { getDashboardKPI, getCompanyBreakdown, getWeeklyTrend, getMonthlyTrend, getAlerts, getAccountBreakdown } from '../../api'
 import { fmtMYR, fmtPct, changeColor } from '../../utils/format'
 
 export default function DashboardPage() {
   const [kpi, setKpi] = useState<any>(null)
   const [breakdown, setBreakdown] = useState<any[]>([])
+  const [accountBreakdown, setAccountBreakdown] = useState<any[]>([])
   const [weeklyTrend, setWeeklyTrend] = useState<any[]>([])
   const [monthlyTrend, setMonthlyTrend] = useState<any[]>([])
   const [alerts, setAlerts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
 
   useEffect(() => {
     Promise.all([
-      getDashboardKPI(), getCompanyBreakdown(), getWeeklyTrend(12), getMonthlyTrend(12), getAlerts()
-    ]).then(([k, b, wt, mt, a]) => {
-      setKpi(k); setBreakdown(b); setWeeklyTrend(wt); setMonthlyTrend(mt); setAlerts(a)
+      getDashboardKPI(), getCompanyBreakdown(), getAccountBreakdown(), getWeeklyTrend(12), getMonthlyTrend(12), getAlerts()
+    ]).then(([k, b, ab, wt, mt, a]) => {
+      setKpi(k); setBreakdown(b); setAccountBreakdown(ab); setWeeklyTrend(wt); setMonthlyTrend(mt); setAlerts(a)
     }).finally(() => setLoading(false))
   }, [])
 
@@ -51,6 +59,20 @@ export default function DashboardPage() {
     { title: '总余额 (MYR)', dataIndex: 'total_myr', key: 'total_myr', render: (v: number) => fmtMYR(v), align: 'right' as const },
     { title: '可动用', dataIndex: 'liquid_myr', key: 'liquid_myr', render: (v: number) => fmtMYR(v), align: 'right' as const },
     { title: '定期', dataIndex: 'fixed_myr', key: 'fixed_myr', render: (v: number) => fmtMYR(v), align: 'right' as const },
+  ]
+
+  const accountColumns = [
+    { title: '公司', dataIndex: 'company_short', key: 'company_short', width: 90 },
+    { title: '账户', dataIndex: 'account_name', key: 'account_name', width: 140 },
+    ...(!isMobile ? [{ title: '银行', dataIndex: 'bank_name', key: 'bank_name', width: 130 }] : []),
+    {
+      title: '类型', dataIndex: 'account_type', key: 'account_type', width: 70,
+      render: (v: string) => <Tag color={v === 'fd' ? 'orange' : 'blue'}>{v === 'fd' ? '定期' : '活期'}</Tag>
+    },
+    { title: '币种', dataIndex: 'currency', key: 'currency', width: 60 },
+    { title: '原币余额', dataIndex: 'balance_original', key: 'balance_original', align: 'right' as const, width: 130, render: (v: number, r: any) => fmtMYR(v, r.currency) },
+    { title: '折算 MYR', dataIndex: 'balance_myr', key: 'balance_myr', align: 'right' as const, width: 130, render: (v: number) => fmtMYR(v) },
+    ...(!isMobile ? [{ title: '更新日期', dataIndex: 'snapshot_date', key: 'snapshot_date', width: 105 }] : []),
   ]
 
   return (
@@ -143,8 +165,30 @@ export default function DashboardPage() {
         </Col>
       </Row>
 
+      {/* Account breakdown table */}
+      <Card title="各账户余额明细" style={{ marginBottom: 16 }}>
+        <Table
+          dataSource={accountBreakdown}
+          columns={accountColumns}
+          rowKey="account_id"
+          pagination={false}
+          size="small"
+          scroll={{ x: 'max-content' }}
+          summary={(rows) => {
+            const total = rows.reduce((s, r) => s + r.balance_myr, 0)
+            return (
+              <Table.Summary.Row style={{ fontWeight: 700 }}>
+                <Table.Summary.Cell index={0} colSpan={isMobile ? 4 : 6}>合计</Table.Summary.Cell>
+                <Table.Summary.Cell index={1} align="right">{fmtMYR(total)}</Table.Summary.Cell>
+                {!isMobile && <Table.Summary.Cell index={2} />}
+              </Table.Summary.Row>
+            )
+          }}
+        />
+      </Card>
+
       {/* Company breakdown table */}
-      <Card title="各公司资金明细">
+      <Card title="各公司资金汇总">
         <Table
           dataSource={breakdown}
           columns={companyColumns}

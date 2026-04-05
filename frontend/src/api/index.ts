@@ -43,6 +43,7 @@ export const getDashboardKPI = () => client.get('/dashboard/kpi').then((r) => r.
 export const getCompanyBreakdown = () => client.get('/dashboard/company-breakdown').then((r) => r.data)
 export const getWeeklyTrend = (weeks = 12) => client.get('/dashboard/weekly-trend', { params: { weeks } }).then((r) => r.data)
 export const getMonthlyTrend = (months = 12) => client.get('/dashboard/monthly-trend', { params: { months } }).then((r) => r.data)
+export const getAccountBreakdown = () => client.get('/dashboard/account-breakdown').then((r) => r.data)
 export const getAlerts = () => client.get('/dashboard/alerts').then((r) => r.data)
 
 // Reports

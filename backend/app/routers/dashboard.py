@@ -28,6 +28,11 @@ def get_monthly_trend(months: int = 12, db: Session = Depends(get_db), _: User =
     return svc.get_monthly_trend(db, months)
 
 
+@router.get("/account-breakdown")
+def get_account_breakdown(db: Session = Depends(get_db), _: User = Depends(require_any_role)):
+    return svc.get_account_breakdown(db)
+
+
 @router.get("/alerts")
 def get_alerts(db: Session = Depends(get_db), _: User = Depends(require_any_role)):
     return svc.get_alerts(db)
