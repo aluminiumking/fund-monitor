@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { Row, Col, Card, Statistic, Alert, Tag, Spin, Table, Tabs } from 'antd'
+import React, { useEffect, useState, useMemo } from 'react'
+import { Row, Col, Card, Statistic, Alert, Tag, Spin, Table, Tabs, Radio } from 'antd'
 import { ArrowUpOutlined, ArrowDownOutlined, WarningOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import { Line, Pie } from '@ant-design/charts'
 import { getDashboardKPI, getCompanyBreakdown, getWeeklyTrend, getMonthlyTrend, getAlerts, getAccountBreakdown } from '../../api'
@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [selectedCompany, setSelectedCompany] = useState<string>('all')
 
   useEffect(() => {
     const fn = () => setIsMobile(window.innerWidth < 768)
@@ -47,6 +48,23 @@ export default function DashboardPage() {
         </div>
       )}
     </Card>
+  )
+
+  const companyOptions = useMemo(() => {
+    const seen = new Set<string>()
+    const opts: { label: string; value: string }[] = [{ label: '全部', value: 'all' }]
+    accountBreakdown.forEach((r: any) => {
+      if (!seen.has(r.company_short)) {
+        seen.add(r.company_short)
+        opts.push({ label: r.company_short, value: r.company_short })
+      }
+    })
+    return opts
+  }, [accountBreakdown])
+
+  const filteredAccounts = useMemo(() =>
+    selectedCompany === 'all' ? accountBreakdown : accountBreakdown.filter((r: any) => r.company_short === selectedCompany),
+    [accountBreakdown, selectedCompany]
   )
 
   const trendData = weeklyTrend.map((d: any) => ({ ...d, series: '周余额' }))
@@ -166,9 +184,22 @@ export default function DashboardPage() {
       </Row>
 
       {/* Account breakdown table */}
-      <Card title="各账户余额明细" style={{ marginBottom: 16 }}>
+      <Card
+        title="各账户余额明细"
+        style={{ marginBottom: 16 }}
+        extra={
+          <Radio.Group
+            value={selectedCompany}
+            onChange={(e) => setSelectedCompany(e.target.value)}
+            size="small"
+            optionType="button"
+            buttonStyle="solid"
+            options={companyOptions}
+          />
+        }
+      >
         <Table
-          dataSource={accountBreakdown}
+          dataSource={filteredAccounts}
           columns={accountColumns}
           rowKey="account_id"
           pagination={false}
