@@ -30,6 +30,23 @@ export default function DashboardPage() {
     }).finally(() => setLoading(false))
   }, [])
 
+  const companyOptions = useMemo(() => {
+    const seen = new Set<string>()
+    const opts: { label: string; value: string }[] = [{ label: '全部', value: 'all' }]
+    accountBreakdown.forEach((r: any) => {
+      if (!seen.has(r.company_short)) {
+        seen.add(r.company_short)
+        opts.push({ label: r.company_short, value: r.company_short })
+      }
+    })
+    return opts
+  }, [accountBreakdown])
+
+  const filteredAccounts = useMemo(() =>
+    selectedCompany === 'all' ? accountBreakdown : accountBreakdown.filter((r: any) => r.company_short === selectedCompany),
+    [accountBreakdown, selectedCompany]
+  )
+
   if (loading) return <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div>
 
   const statCard = (title: string, value: number, change: number | null, pct: number | null, prefix = 'MYR') => (
@@ -48,23 +65,6 @@ export default function DashboardPage() {
         </div>
       )}
     </Card>
-  )
-
-  const companyOptions = useMemo(() => {
-    const seen = new Set<string>()
-    const opts: { label: string; value: string }[] = [{ label: '全部', value: 'all' }]
-    accountBreakdown.forEach((r: any) => {
-      if (!seen.has(r.company_short)) {
-        seen.add(r.company_short)
-        opts.push({ label: r.company_short, value: r.company_short })
-      }
-    })
-    return opts
-  }, [accountBreakdown])
-
-  const filteredAccounts = useMemo(() =>
-    selectedCompany === 'all' ? accountBreakdown : accountBreakdown.filter((r: any) => r.company_short === selectedCompany),
-    [accountBreakdown, selectedCompany]
   )
 
   const trendData = weeklyTrend.map((d: any) => ({ ...d, series: '周余额' }))
