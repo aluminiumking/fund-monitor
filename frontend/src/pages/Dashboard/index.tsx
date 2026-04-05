@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [selectedCompany, setSelectedCompany] = useState<string>('all')
+  const [selectedType, setSelectedType] = useState<string>('all')
 
   useEffect(() => {
     const fn = () => setIsMobile(window.innerWidth < 768)
@@ -43,8 +44,11 @@ export default function DashboardPage() {
   }, [accountBreakdown])
 
   const filteredAccounts = useMemo(() =>
-    selectedCompany === 'all' ? accountBreakdown : accountBreakdown.filter((r: any) => r.company_short === selectedCompany),
-    [accountBreakdown, selectedCompany]
+    accountBreakdown.filter((r: any) =>
+      (selectedCompany === 'all' || r.company_short === selectedCompany) &&
+      (selectedType === 'all' || r.account_type === selectedType)
+    ),
+    [accountBreakdown, selectedCompany, selectedType]
   )
 
   if (loading || !kpi) return <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div>
@@ -188,14 +192,28 @@ export default function DashboardPage() {
         title="各账户余额明细"
         style={{ marginBottom: 16 }}
         extra={
-          <Radio.Group
-            value={selectedCompany}
-            onChange={(e) => setSelectedCompany(e.target.value)}
-            size="small"
-            optionType="button"
-            buttonStyle="solid"
-            options={companyOptions}
-          />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <Radio.Group
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              size="small"
+              optionType="button"
+              buttonStyle="solid"
+              options={[
+                { label: '全部', value: 'all' },
+                { label: '活期', value: 'current' },
+                { label: '定期', value: 'fd' },
+              ]}
+            />
+            <Radio.Group
+              value={selectedCompany}
+              onChange={(e) => setSelectedCompany(e.target.value)}
+              size="small"
+              optionType="button"
+              buttonStyle="solid"
+              options={companyOptions}
+            />
+          </div>
         }
       >
         <Table
