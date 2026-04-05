@@ -27,7 +27,7 @@ export default function DashboardPage() {
       getDashboardKPI(), getCompanyBreakdown(), getAccountBreakdown(), getWeeklyTrend(12), getMonthlyTrend(12), getAlerts()
     ]).then(([k, b, ab, wt, mt, a]) => {
       setKpi(k); setBreakdown(b); setAccountBreakdown(ab); setWeeklyTrend(wt); setMonthlyTrend(mt); setAlerts(a)
-    }).finally(() => setLoading(false))
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   const companyOptions = useMemo(() => {
@@ -47,7 +47,7 @@ export default function DashboardPage() {
     [accountBreakdown, selectedCompany]
   )
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div>
+  if (loading || !kpi) return <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div>
 
   const statCard = (title: string, value: number, change: number | null, pct: number | null, prefix = 'MYR') => (
     <Card>
