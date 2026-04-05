@@ -40,10 +40,10 @@ def get_kpi(db: Session) -> dict:
     for s in snapshots:
         bal = s.balance_myr or Decimal("0")
         total_myr += bal
-        if s.bank_account.is_liquid:
-            liquid_myr += bal
-        else:
+        if s.bank_account.account_type == 'fd' or not s.bank_account.is_liquid:
             fixed_myr += bal
+        else:
+            liquid_myr += bal
         if s.currency == "USD":
             usd_original += s.balance_original or Decimal("0")
 
@@ -112,10 +112,10 @@ def get_company_breakdown(db: Session) -> list[dict]:
             }
         bal = s.balance_myr or Decimal("0")
         company_map[cid]["total_myr"] += bal
-        if s.bank_account.is_liquid:
-            company_map[cid]["liquid_myr"] += bal
-        else:
+        if s.bank_account.account_type == 'fd' or not s.bank_account.is_liquid:
             company_map[cid]["fixed_myr"] += bal
+        else:
+            company_map[cid]["liquid_myr"] += bal
 
     return [
         {**v, "total_myr": float(v["total_myr"]), "liquid_myr": float(v["liquid_myr"]), "fixed_myr": float(v["fixed_myr"])}
